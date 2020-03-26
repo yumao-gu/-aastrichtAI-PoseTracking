@@ -33,8 +33,20 @@ SIM_TIME = 50.0  # simulation time [s]
 v = 0.0  # [m/s]
 yawrate = 0.0  # [rad/s]
 esc_flag = False
+features = np.array([[0,1],[3,0],[2,4],[-3,3]])
+feature_x = [0,3,2,-3]
+feature_y = [1,0,4,3]
 
 show_animation = True
+
+def detection(x):
+	n = 0
+	for feature in features:
+		print("feature")
+		print(feature)
+		if (feature[0] - x[0, 0])**2 + (feature[1] - x[1, 0])**2 <= 1.0:
+			n = n+1
+	return n
 
 def calc_input():
     	#v = 1.0  # [m/s]
@@ -66,7 +78,7 @@ def observation(xTrue, xd, u):
     	# add noise to input
     	xd = motion_model(xd, u) + R_sqrt @ np.random.normal(0,1,(3,1))
     	# add noise to gps x-y-theta
-    	n = 0
+    	n = detection(xTrue)
     	z = observation_model(xTrue) + 1.0 / (n+1) * Q_sqrt @ np.random.normal(0,1,(3,1))
     	return xTrue, z, xd, n
 
@@ -134,9 +146,9 @@ def key_event(event):
 	elif event.key == 'S':
 		v -= 0.1
 	elif event.key == 'A':
-		yawrate += 0.1
+		yawrate += 0.3
 	elif event.key == 'D':
-		yawrate -= 0.1
+		yawrate -= 0.3
 	elif event.key == 'escape':
 		esc_flag = True
 	print(event.key)
@@ -165,11 +177,14 @@ def main():
 
 		xEst, PEst = kf_estimation(xEst, PEst, z, u, n)
 		print("time: " + str(time))
-		'''print("PEst")
+		print("n: " + str(n))
+		print("PEst")
 		print(PEst)
-		print("xEst")
-		print(xEst)'''
-
+		'''print("xEst")
+		print(xEst)
+		print("xTrue")
+		print(xTrue)'''
+		
         	# store data history
 		hxEst = np.hstack((hxEst, xEst))
 		hxDR = np.hstack((hxDR, xDR))
@@ -180,14 +195,14 @@ def main():
 			plt.cla()
             		# for stopping simulation with the esc key.
 			plt.gcf().canvas.mpl_connect('key_release_event',key_event)
-			plt.plot(hz[0, :], hz[1, :], ".g")
+			plt.plot(feature_x, feature_y,"om")
 			plt.plot(hxTrue[0, :].flatten(),hxTrue[1, :].flatten(), "-b")
 			plt.plot(hxDR[0, :].flatten(),hxDR[1, :].flatten(), "-k")
 			plt.plot(hxEst[0, :].flatten(),hxEst[1, :].flatten(), "-r")
 			plot_covariance_ellipse(xEst, PEst)
 			plt.axis("equal")
 			plt.grid(True)
-			plt.pause(0.1)
+			plt.pause(1)
     
 	print("END!")
 
